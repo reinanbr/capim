@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-
+from routes import capim_index
 
 app = FastAPI(debug=True,docs_url="/help")
 origins = ["*"]
@@ -24,6 +24,8 @@ app.add_middleware(
 )
 
 
+
+app.include_router(capim_index.router)
 
 
 
