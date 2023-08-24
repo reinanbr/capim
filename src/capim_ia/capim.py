@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 import pandas as pd
-
 from tools.objects import DataPlantio
 from tools.read_file import read_data
 
@@ -20,7 +19,6 @@ class Capim:
         self.model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['mae'])
         
 
-
     def train(self,data:DataPlantio,epochs=1000):
         inputs,outputs = data.input, data.output
         history = self.model.fit(inputs, outputs, epochs=1000, verbose=0)
@@ -30,3 +28,10 @@ class Capim:
     def predict(self,new_inputs):
         predictions = self.model.predict(new_inputs)
         return predictions
+    
+    def save_model(self,filename:str='model.h5'):
+        try:
+            self.model.save(filename)
+            return filename
+        except Exception as e:
+            print(e)

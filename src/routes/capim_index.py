@@ -1,16 +1,14 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request,APIRouter
-
-from fastapi.responses import FileResponse
+from fastapi import UploadFile, File, HTTPException, Request,APIRouter
 import os
-from ipaddress import ip_address
 
-from src.capim import Capim,read_data
+
+from src.capim_ia.capim import Capim,read_data
 from src.tools.ip_tools import get_filename_from_ip
-
-PATH_DIR = '/usr/tmp'
-router = APIRouter(prefix='/main',tags=['capim'])
+from src.tools.constants import PATH_DIR_TMP
 
 
+
+router = APIRouter(prefix='/capim',tags=['capim'])
 
 
 
@@ -20,17 +18,19 @@ async def upload_file(file: UploadFile = File(...)):
 
         client_ip = file.client.host
         
-        filename = get_filename_from_ip(client_ip)
-        save_path = os.path.join(PATH_DIR, filename)
-        with open(save_path, "wb") as f:
+        filename_excel = get_filename_from_ip(client_ip,type_file='.xlsx')
+        save_path_excel = os.path.join(PATH_DIR_TMP, filename_excel)
+        with open(save_path_excel, "wb") as f:
             f.write(file.file.read())
-        
-        data_xlsx = read_data(save_path)
+            
+        data_xlsx = read_data(save_path_excel)
         cp = Capim()
         cp.train(data=data_xlsx)
-        
+        filename_model_trained = get_filename_from_ip(client_ip,type_ip='.h5')
+        save_path_model = os.path.join(PATH_DIR_TMP,filename_model_trained)
+        cp.save_model(save_path_model)
+        return {"message": "Upload e leitura de dados bem-sucedido!", "filename_excel": filename_excel, "path": save_path_excel}
 
-        return {"message": "Upload e leitura de dados bem-sucedido!", "filename": filename, "path": save_path}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
