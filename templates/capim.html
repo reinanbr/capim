@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+       
+
+
+        <h1>Upload de Arquivo Sem Recarregar</h1>
+        <input type="file" id="fileInput" accept=".ods, .xlsx">
+        <button id="uploadButton">Enviar</button>
+        <div id="status"></div>
+        
+        <div id="progressContainer">
+            <div id="progressBar"></div>
+        </div>
+        <p id="counter">Tempo decorrido: 0 segundos</p>
+        <p id="totalTime" style="display: none;">Tempo total: 0 segundos</p>
+        <div id='painelShowWork' style="display:none;">
+            <hr>
+            <p>variação da produção:</p>
+            <img id="imgGradientCaixas" src="{{url_for('tmp.static',filename='plot__plot__gradient_caixas.png')}}" height="450" weight=350>
+            <button onclick="downloadGradientCaixas()"></button>
+        </div>
+        <script>
+            $(document).ready(function() {
+                $('#painelShowWork').fadeOut()
+               
+                let intervalIdUpload;
+                let elapsedTime;
+                let currentTime;
+                let startTime;
+                let totalTime;
+                let intervalIdLoadingServer;
+
+                function downloadGradientCaixas(){
+
+                }
+
+                function countTimeUpload() {
+                    currentTime = new Date().getTime();
+                    elapsedTime = (currentTime - startTime) / 1000;
+                    $("#counter").text(`Fazendo upload do arquivo: ${elapsedTime.toFixed(2)}s ...`);
+                }
+
+                function countTimeLoadingServer(){
+                    currentTime = new Date().getTime();
+                    elapsedTime = (currentTime - startTime) / 1000;
+                    $("#counter").text(`Processando dados no servidor ${elapsedTime.toFixed(2)}s...`);
+
+                }
+
+                $("#uploadButton").click(function() {
+                    startTime = new Date().getTime();
+                    intervalIdUpload = setInterval( countTimeUpload, 100);
+                    
+                    const fileInput = document.getElementById('fileInput');
+                    const file = fileInput.files[0];
+    
+                    if (file) {
+                        const formData = new FormData();
+                        formData.append('file', file);
+    
+                        $.ajax({
+                            url: '/upload',
+                            type: 'POST',
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            xhr: function() {
+                                const xhr = new window.XMLHttpRequest();
+                                xhr.upload.onprogress = function(event) {
+                                    if (event.lengthComputable) {
+                                        const percent = (event.loaded / event.total) * 100;
+                                        $("#progressBar").css("width", percent + "%");
+                                        $("#status").text('Carregando: ' + percent.toFixed(2) + '%');
+                                        if (percent == 100){
+                                            clearInterval(intervalIdUpload)
+                                            $("#status").text('Upload bem-sucedido!');
+                                            intervalIdLoadingServer = setInterval(countTimeLoadingServer,100)
+                                        }
+
+                                    }
+                                };
+                                return xhr;
+                            },
+                            success: function(response) {
+                                
+                                
+                                clearInterval(intervalIdLoadingServer);
+                                let currentTime = new Date().getTime();
+                                totalTime = (currentTime - startTime) / 1000; // Adiciona o tempo decorrido da requisição
+                                $("#counter").text("Dados trabalhados com sucesso!");
+                                $("#totalTime").text(`Tempo total: ${totalTime.toFixed(2)} segundos`);
+                                $("#totalTime").show();
+
+
+                                console.log(response);
+
+                                // showing plots ...
+                                console.log(response.filesPlots)
+                                if(response.filesPlots.plotGradientCaixas.sucess){
+                                    let imgGradientCaixasFilename = response.filesPlots.plotGradientCaixas.plot_filename;
+                                    $('#imgGradientCaixas').attr('src','/plots/'+imgGradientCaixasFilename)
+
+                                    $('#painelShowWork').fadeIn('slow')
+
+                                    console.log('era pra mostrar')
+                                    function downloadGradientCaixas(){
+                                        fetch('/download'+)
+                                    }
+                    
+                                }
+
+                            },
+                            error: function() {
+                                clearInterval(intervalId);
+                                let currentTime = new Date().getTime();
+                                totalTime = (currentTime - startTime) / 1000; // Adiciona o tempo decorrido da requisição
+                                $("#counter").text("Requisição AJAX concluída!");
+                                $("#totalTime").text(`Tempo total: ${totalTime.toFixed(2)} segundos`);
+                                $("#totalTime").show();
+                                console.log(response);
+                            }
+                        });
+                    }
+                });
+            });
+         </script>
+  
+        <style>
+            #progressContainer {
+                width: 100%;
+                background-color: #ccc;
+            }
+    
+            #progressBar {
+                width: 0;
+                height: 20px;
+                background-color: #4CAF50;
+                transition: width 0.3s;
+            }
+        </style>
+</body>
+</html>
